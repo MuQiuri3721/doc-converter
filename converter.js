@@ -411,45 +411,79 @@ class DocConverter {
 
     async extractPdfText(arrayBuffer) {
         try {
+            // 检查PDF.js是否可用
+            if (typeof pdfjsLib === 'undefined') {
+                throw new Error('PDF.js库未加载，请刷新页面重试');
+            }
+            
+            console.log('开始加载PDF...');
+            
             // 使用PDF.js提取文本，添加超时
-            // cMap用于支持中文等CJK字符
             const loadingTask = pdfjsLib.getDocument({ 
                 data: arrayBuffer,
                 useSystemFonts: true,
                 cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-                cMapPacked: true
+                cMapPacked: true,
+                disableFontFace: false
             });
+            
+            // 监听加载进度
+            loadingTask.onProgress = (progress) => {
+                const percent = Math.round((progress.loaded / progress.total) * 100);
+                console.log(`PDF加载进度: ${percent}%`);
+            };
             
             const pdf = await Promise.race([
                 loadingTask.promise,
                 new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('PDF加载超时')), 30000)
+                    setTimeout(() => reject(new Error('PDF加载超时，请检查文件是否损坏')), 30000)
                 )
             ]);
             
+            console.log(`PDF加载成功，共${pdf.numPages}页`);
+            
             let fullText = '';
-            const maxPages = Math.min(pdf.numPages, 100); // 最多处理100页
+            const maxPages = Math.min(pdf.numPages, 50); // 最多处理50页，避免内存问题
             
             for (let i = 1; i <= maxPages; i++) {
                 try {
+                    console.log(`正在提取第${i}页...`);
                     const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items
-                        .map(item => item.str)
-                        .join(' ')
-                        .replace(/\s+/g, ' ')
-                        .trim();
+                    const textContent = await page.getTextContent({
+                        includeMarkedContent: false
+                    });
                     
-                    if (pageText) {
-                        fullText += `\n--- 第 ${i} 页 ---\n${pageText}\n`;
+                    // 更智能的文本拼接
+                    let pageText = '';
+                    let lastY = null;
+                    
+                    for (const item of textContent.items) {
+                        if (item.str && item.str.trim()) {
+                            // 检测是否需要换行（基于Y坐标变化）
+                            if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+                                pageText += '\n';
+                            }
+                            pageText += item.str;
+                            lastY = item.transform[5];
+                        }
+                    }
+                    
+                    if (pageText.trim()) {
+                        fullText += `\n--- 第 ${i} 页 ---\n${pageText.trim()}\n`;
+                    } else {
+                        fullText += `\n--- 第 ${i} 页 ---\n(该页无文本内容或内容为图片)\n`;
                     }
                     
                     // 释放页面资源
                     page.cleanup();
                 } catch (pageError) {
                     console.warn(`第${i}页提取失败:`, pageError);
-                    fullText += `\n--- 第 ${i} 页 ---\n(无法提取内容)\n`;
+                    fullText += `\n--- 第 ${i} 页 ---\n(提取失败: ${pageError.message})\n`;
                 }
+            }
+            
+            if (pdf.numPages > maxPages) {
+                fullText += `\n\n[注：该PDF共${pdf.numPages}页，仅提取前${maxPages}页内容]\n`;
             }
             
             return { 
@@ -459,7 +493,22 @@ class DocConverter {
             };
         } catch (error) {
             console.error('PDF文本提取错误:', error);
-            throw new Error('PDF解析失败: ' + (error.message || '未知错误'));
+            
+            // 提供更友好的错误信息
+            let errorMsg = 'PDF解析失败';
+            if (error.message.includes('Invalid PDF')) {
+                errorMsg = 'PDF文件格式无效或已损坏';
+            } else if (error.message.includes('password')) {
+                errorMsg = 'PDF文件已加密，需要密码';
+            } else if (error.message.includes('worker')) {
+                errorMsg = 'PDF解析器初始化失败，请刷新页面重试';
+            } else if (error.message.includes('timeout')) {
+                errorMsg = error.message;
+            } else {
+                errorMsg = error.message || '未知错误';
+            }
+            
+            throw new Error(errorMsg);
         }
     }
 
