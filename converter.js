@@ -194,22 +194,59 @@ class DocConverter {
     }
 
     async docxToPdf(arrayBuffer) {
-        // 使用 mammoth 提取内容，然后生成 PDF
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        const text = result.value;
+        // 使用 mammoth 转换为HTML，保留格式
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        const htmlContent = result.value;
 
-        // 创建临时 HTML
+        // 创建完整的HTML文档
         const html = `
+            <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <style>
-                    body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; }
-                    h1, h2, h3 { color: #333; }
-                    p { margin-bottom: 10px; }
+                    body { 
+                        font-family: "Microsoft YaHei", Arial, sans-serif; 
+                        padding: 40px; 
+                        line-height: 1.8;
+                        color: #333;
+                    }
+                    h1, h2, h3, h4, h5, h6 { 
+                        color: #222; 
+                        margin-top: 20px;
+                        margin-bottom: 10px;
+                    }
+                    p { 
+                        margin-bottom: 12px; 
+                        text-align: justify;
+                    }
+                    table { 
+                        border-collapse: collapse; 
+                        width: 100%; 
+                        margin: 15px 0;
+                    }
+                    th, td { 
+                        border: 1px solid #ddd; 
+                        padding: 8px; 
+                        text-align: left;
+                    }
+                    th { 
+                        background-color: #f5f5f5; 
+                        font-weight: bold;
+                    }
+                    ul, ol { 
+                        margin: 10px 0; 
+                        padding-left: 30px;
+                    }
+                    li { 
+                        margin-bottom: 5px;
+                    }
+                    strong { font-weight: bold; }
+                    em { font-style: italic; }
                 </style>
             </head>
             <body>
-                <pre style="white-space: pre-wrap; font-family: Arial, sans-serif;">${text}</pre>
+                ${htmlContent}
             </body>
             </html>
         `;
@@ -220,17 +257,29 @@ class DocConverter {
         document.body.appendChild(element);
 
         const opt = {
-            margin: 10,
+            margin: [15, 15, 15, 15],
             filename: 'converted.pdf',
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                letterRendering: true
+            },
+            jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait'
+            }
         };
 
-        const pdf = await html2pdf().set(opt).from(element).output('blob');
-        document.body.removeChild(element);
-
-        return { blob: pdf, filename: 'converted.pdf', type: 'application/pdf' };
+        try {
+            const pdf = await html2pdf().set(opt).from(element).output('blob');
+            document.body.removeChild(element);
+            return { blob: pdf, filename: 'converted.pdf', type: 'application/pdf' };
+        } catch (error) {
+            document.body.removeChild(element);
+            throw new Error('PDF生成失败: ' + error.message);
+        }
     }
 
     async docxToHtml(arrayBuffer) {
@@ -271,54 +320,101 @@ class DocConverter {
             case 'html':
                 return await this.pdfToHtml(arrayBuffer);
             case 'docx':
-                // PDF转Word比较复杂，这里先提供文本版本
-                return await this.pdfToTxt(arrayBuffer);
+                return await this.pdfToDocx(arrayBuffer);
             default:
                 throw new Error('不支持的转换格式');
         }
     }
 
+    async extractPdfText(arrayBuffer) {
+        // 使用PDF.js提取文本
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += `\n--- 第 ${i} 页 ---\n${pageText}\n`;
+        }
+        
+        return { text: fullText, numPages: pdf.numPages };
+    }
+
     async pdfToTxt(arrayBuffer) {
         try {
-            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-            let text = '';
-
-            // 获取所有页面
-            const pages = pdfDoc.getPages();
-            
-            // 由于pdf-lib不直接支持文本提取，我们创建一个简单的表示
-            text = `PDF 文档\n`;
-            text += `页数: ${pages.length}\n`;
-            text += `尺寸: ${Math.round(pages[0].getWidth())} x ${Math.round(pages[0].getHeight())}\n\n`;
-            text += `注意: 纯前端PDF文本提取有限制，建议使用专业工具进行完整转换。\n`;
-
-            const blob = new Blob([text], { type: 'text/plain' });
+            const { text, numPages } = await this.extractPdfText(arrayBuffer);
+            const header = `PDF 文档转换结果\n页数: ${numPages}\n\n`;
+            const blob = new Blob([header + text], { type: 'text/plain' });
             return { blob, filename: 'converted.txt', type: 'text/plain' };
         } catch (error) {
-            throw new Error('PDF解析失败: ' + error.message);
+            throw new Error('PDF文本提取失败: ' + error.message);
         }
     }
 
     async pdfToHtml(arrayBuffer) {
-        const result = await this.pdfToTxt(arrayBuffer);
-        const html = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Converted PDF</title>
-                <style>
-                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; }
-                    pre { white-space: pre-wrap; line-height: 1.6; }
-                </style>
-            </head>
-            <body>
-                <pre>${await result.blob.text()}</pre>
-            </body>
-            </html>
-        `;
-        const blob = new Blob([html], { type: 'text/html' });
-        return { blob, filename: 'converted.html', type: 'text/html' };
+        try {
+            const { text, numPages } = await this.extractPdfText(arrayBuffer);
+            const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Converted PDF</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; }
+                        .page { border-bottom: 2px solid #eee; padding: 20px 0; margin-bottom: 20px; }
+                        .page-number { color: #999; font-size: 12px; margin-bottom: 10px; }
+                        pre { white-space: pre-wrap; font-family: inherit; }
+                    </style>
+                </head>
+                <body>
+                    <h1>PDF 转换结果</h1>
+                    <p>总页数: ${numPages}</p>
+                    <hr>
+                    <pre>${text.replace(/--- 第 (\d+) 页 ---/g, '<div class="page"><div class="page-number">第 $1 页</div>')}</pre>
+                </body>
+                </html>
+            `;
+            const blob = new Blob([html], { type: 'text/html' });
+            return { blob, filename: 'converted.html', type: 'text/html' };
+        } catch (error) {
+            throw new Error('PDF转HTML失败: ' + error.message);
+        }
+    }
+
+    async pdfToDocx(arrayBuffer) {
+        try {
+            const { text, numPages } = await this.extractPdfText(arrayBuffer);
+            
+            // 创建HTML格式的Word文档（可以被Word打开）
+            const html = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                      xmlns:w='urn:schemas-microsoft-com:office:word' 
+                      xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Converted PDF</title>
+                    <style>
+                        body { font-family: "Microsoft YaHei", Arial, sans-serif; padding: 40px; line-height: 1.6; }
+                        h1 { color: #333; }
+                        .page-break { page-break-before: always; }
+                    </style>
+                </head>
+                <body>
+                    <h1>PDF 转换结果</h1>
+                    <p>原始PDF页数: ${numPages}</p>
+                    <hr>
+                    <pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>
+                </body>
+                </html>
+            `;
+            
+            const blob = new Blob([html], { type: 'application/msword' });
+            return { blob, filename: 'converted.doc', type: 'application/msword' };
+        } catch (error) {
+            throw new Error('PDF转Word失败: ' + error.message);
+        }
     }
 
     // PPT 转换
