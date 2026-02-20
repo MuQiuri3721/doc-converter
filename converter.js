@@ -242,21 +242,29 @@ class DocConverter {
         // 创建完整的HTML文档
         const html = `
             <!DOCTYPE html>
-            <html>
+            <html lang="zh-CN">
             <head>
                 <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+                    
                     body { 
-                        font-family: "Microsoft YaHei", Arial, sans-serif; 
+                        font-family: "Noto Sans SC", "Microsoft YaHei", "SimHei", "PingFang SC", Arial, sans-serif; 
                         padding: 40px; 
                         line-height: 1.8;
                         color: #333;
+                        font-size: 11pt;
                     }
                     h1, h2, h3, h4, h5, h6 { 
                         color: #222; 
                         margin-top: 20px;
                         margin-bottom: 10px;
+                        font-family: "Noto Sans SC", "Microsoft YaHei", "SimHei", sans-serif;
                     }
+                    h1 { font-size: 24pt; }
+                    h2 { font-size: 20pt; }
+                    h3 { font-size: 16pt; }
                     p { 
                         margin-bottom: 12px; 
                         text-align: justify;
@@ -327,14 +335,48 @@ class DocConverter {
         const result = await mammoth.convertToHtml({ arrayBuffer });
         const html = `
             <!DOCTYPE html>
-            <html>
+            <html lang="zh-CN">
             <head>
                 <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Converted Document</title>
                 <style>
-                    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; }
-                    h1, h2, h3 { color: #333; }
-                    p { margin-bottom: 10px; }
+                    body { 
+                        font-family: "Microsoft YaHei", "SimHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif; 
+                        max-width: 800px; 
+                        margin: 0 auto; 
+                        padding: 40px; 
+                        line-height: 1.8;
+                        color: #333;
+                    }
+                    h1, h2, h3, h4, h5, h6 { 
+                        color: #222; 
+                        margin-top: 20px;
+                        margin-bottom: 10px;
+                        font-family: "Microsoft YaHei", "SimHei", sans-serif;
+                    }
+                    p { 
+                        margin-bottom: 12px;
+                        text-align: justify;
+                    }
+                    table { 
+                        border-collapse: collapse; 
+                        width: 100%; 
+                        margin: 15px 0;
+                    }
+                    th, td { 
+                        border: 1px solid #ddd; 
+                        padding: 8px; 
+                        text-align: left;
+                    }
+                    th { 
+                        background-color: #f5f5f5; 
+                        font-weight: bold;
+                    }
+                    ul, ol { 
+                        margin: 10px 0; 
+                        padding-left: 30px;
+                    }
                 </style>
             </head>
             <body>
@@ -343,7 +385,7 @@ class DocConverter {
             </html>
         `;
 
-        const blob = new Blob([html], { type: 'text/html' });
+        const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
         return { blob, filename: 'converted.html', type: 'text/html' };
     }
 
@@ -370,10 +412,11 @@ class DocConverter {
     async extractPdfText(arrayBuffer) {
         try {
             // 使用PDF.js提取文本，添加超时
+            // cMap用于支持中文等CJK字符
             const loadingTask = pdfjsLib.getDocument({ 
                 data: arrayBuffer,
                 useSystemFonts: true,
-                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
                 cMapPacked: true
             });
             
@@ -434,28 +477,54 @@ class DocConverter {
     async pdfToHtml(arrayBuffer) {
         try {
             const { text, numPages } = await this.extractPdfText(arrayBuffer);
+            // 处理文本，保留换行但改善格式
+            const processedText = text
+                .replace(/--- 第 (\d+) 页 ---/g, '</div><div class="page"><div class="page-number">第 $1 页</div>')
+                .replace(/\n/g, '<br>');
+            
             const html = `
                 <!DOCTYPE html>
-                <html>
+                <html lang="zh-CN">
                 <head>
                     <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>Converted PDF</title>
                     <style>
-                        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.6; }
-                        .page { border-bottom: 2px solid #eee; padding: 20px 0; margin-bottom: 20px; }
-                        .page-number { color: #999; font-size: 12px; margin-bottom: 10px; }
-                        pre { white-space: pre-wrap; font-family: inherit; }
+                        body { 
+                            font-family: "Microsoft YaHei", "SimHei", "PingFang SC", Arial, sans-serif; 
+                            max-width: 800px; 
+                            margin: 0 auto; 
+                            padding: 40px; 
+                            line-height: 1.8;
+                            color: #333;
+                        }
+                        h1 { color: #222; }
+                        .page { 
+                            border-bottom: 2px solid #eee; 
+                            padding: 20px 0; 
+                            margin-bottom: 20px; 
+                        }
+                        .page-number { 
+                            color: #667eea; 
+                            font-size: 14px; 
+                            margin-bottom: 15px;
+                            font-weight: bold;
+                        }
+                        .page-content {
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        }
                     </style>
                 </head>
                 <body>
-                    <h1>PDF 转换结果</h1>
+                    <h1>📄 PDF 转换结果</h1>
                     <p>总页数: ${numPages}</p>
                     <hr>
-                    <pre>${text.replace(/--- 第 (\d+) 页 ---/g, '<div class="page"><div class="page-number">第 $1 页</div>')}</pre>
+                    <div class="page-content">${processedText}</div>
                 </body>
                 </html>
             `;
-            const blob = new Blob([html], { type: 'text/html' });
+            const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
             return { blob, filename: 'converted.html', type: 'text/html' };
         } catch (error) {
             throw new Error('PDF转HTML失败: ' + error.message);
@@ -473,23 +542,38 @@ class DocConverter {
                       xmlns='http://www.w3.org/TR/REC-html40'>
                 <head>
                     <meta charset="UTF-8">
+                    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
                     <title>Converted PDF</title>
                     <style>
-                        body { font-family: "Microsoft YaHei", Arial, sans-serif; padding: 40px; line-height: 1.6; }
-                        h1 { color: #333; }
+                        body { 
+                            font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif; 
+                            padding: 40px; 
+                            line-height: 1.8;
+                            font-size: 12pt;
+                        }
+                        h1 { 
+                            color: #333; 
+                            font-family: "Microsoft YaHei", "SimHei", sans-serif;
+                        }
                         .page-break { page-break-before: always; }
+                        pre { 
+                            white-space: pre-wrap; 
+                            font-family: "Microsoft YaHei", "SimSun", sans-serif;
+                            font-size: 11pt;
+                            line-height: 1.6;
+                        }
                     </style>
                 </head>
                 <body>
                     <h1>PDF 转换结果</h1>
                     <p>原始PDF页数: ${numPages}</p>
                     <hr>
-                    <pre style="white-space: pre-wrap; font-family: inherit;">${text}</pre>
+                    <pre>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
                 </body>
                 </html>
             `;
             
-            const blob = new Blob([html], { type: 'application/msword' });
+            const blob = new Blob([html], { type: 'application/msword; charset=utf-8' });
             return { blob, filename: 'converted.doc', type: 'application/msword' };
         } catch (error) {
             throw new Error('PDF转Word失败: ' + error.message);
