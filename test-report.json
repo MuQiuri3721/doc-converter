@@ -1,0 +1,511 @@
+{
+  "timestamp": "2026-02-20T18:42:40.851Z",
+  "rounds": 10,
+  "results": [
+    {
+      "round": 1,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 2,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 3,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 4,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 5,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 6,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 7,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 8,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 9,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    },
+    {
+      "round": 10,
+      "tests": [
+        {
+          "name": "文件验证",
+          "passed": true
+        },
+        {
+          "name": "文件名生成",
+          "passed": true
+        },
+        {
+          "name": "文件大小格式化",
+          "passed": true
+        },
+        {
+          "name": "HTML转义",
+          "passed": true
+        },
+        {
+          "name": "格式选项",
+          "passed": true
+        },
+        {
+          "name": "错误处理",
+          "passed": true
+        },
+        {
+          "name": "HTML生成",
+          "passed": true
+        },
+        {
+          "name": "代码结构",
+          "passed": true
+        },
+        {
+          "name": "库依赖",
+          "passed": true
+        },
+        {
+          "name": "内存管理",
+          "passed": true
+        }
+      ],
+      "summary": {
+        "passed": 10,
+        "total": 10,
+        "rate": "100.0"
+      }
+    }
+  ],
+  "summary": {
+    "totalPassed": 100,
+    "totalTests": 100,
+    "overallRate": "100.0"
+  }
+}
