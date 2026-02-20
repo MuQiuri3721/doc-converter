@@ -3,6 +3,7 @@ class DocConverter {
     constructor() {
         this.currentFile = null;
         this.currentFormat = null;
+        this.currentDownloadUrl = null;
         this.init();
     }
 
@@ -417,8 +418,14 @@ class DocConverter {
         }
     }
 
-    // PPT 转换
+    // PPT 转换 - 使用JSZip解析PPTX文件
     async convertPptx(arrayBuffer, targetFormat) {
+        // 检查是否支持JSZip
+        if (typeof JSZip === 'undefined') {
+            // 动态加载JSZip
+            await this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+        }
+        
         switch (targetFormat) {
             case 'pdf':
                 return await this.pptxToPdf(arrayBuffer);
@@ -429,24 +436,106 @@ class DocConverter {
         }
     }
 
+    async loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async extractPptxContent(arrayBuffer) {
+        try {
+            const zip = await JSZip.loadAsync(arrayBuffer);
+            
+            // 读取幻灯片数量
+            const slides = Object.keys(zip.files).filter(name => 
+                name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
+            );
+            
+            // 尝试读取内容（简化版）
+            let content = [];
+            for (let i = 0; i < Math.min(slides.length, 5); i++) {
+                const slideContent = await zip.file(slides[i]).async('text');
+                // 提取文本内容（简单正则）
+                const texts = slideContent.match(/<a:t>([^<]+)<\/a:t>/g) || [];
+                const slideText = texts.map(t => t.replace(/<\/?a:t>/g, '')).join(' ');
+                content.push({
+                    slide: i + 1,
+                    text: slideText.substring(0, 200) + (slideText.length > 200 ? '...' : '')
+                });
+            }
+            
+            return {
+                slideCount: slides.length,
+                content: content
+            };
+        } catch (error) {
+            console.error('PPT解析失败:', error);
+            return {
+                slideCount: 0,
+                content: [],
+                error: error.message
+            };
+        }
+    }
+
     async pptxToPdf(arrayBuffer) {
-        // PPT转PDF - 创建包含幻灯片信息的PDF
+        const pptxInfo = await this.extractPptxContent(arrayBuffer);
+        
+        // 生成幻灯片HTML
+        const slidesHtml = pptxInfo.content.map((slide, index) => `
+            <div class="slide">
+                <div class="slide-number">幻灯片 ${slide.slide}</div>
+                <div class="slide-content">${slide.text || '(无文本内容)'}</div>
+            </div>
+        `).join('');
+        
         const html = `
             <html>
             <head>
+                <meta charset="UTF-8">
                 <style>
-                    body { font-family: Arial, sans-serif; padding: 40px; }
-                    .slide { border: 2px solid #ddd; margin-bottom: 30px; padding: 40px; min-height: 400px; page-break-after: always; }
-                    .slide-number { color: #999; font-size: 14px; margin-bottom: 20px; }
+                    body { font-family: "Microsoft YaHei", Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+                    .slide { 
+                        background: white;
+                        border: 2px solid #ddd; 
+                        margin-bottom: 30px; 
+                        padding: 40px; 
+                        min-height: 400px; 
+                        page-break-after: always;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    }
+                    .slide-number { 
+                        color: #667eea; 
+                        font-size: 14px; 
+                        margin-bottom: 20px;
+                        font-weight: bold;
+                    }
+                    .slide-content { 
+                        font-size: 16px; 
+                        line-height: 1.6;
+                        color: #333;
+                    }
+                    .info {
+                        background: #fff3cd;
+                        border: 1px solid #ffeaa7;
+                        padding: 15px;
+                        border-radius: 5px;
+                        margin-bottom: 20px;
+                    }
                 </style>
             </head>
             <body>
-                <div class="slide">
-                    <div class="slide-number">幻灯片 1</div>
-                    <h1>PPT 演示文稿</h1>
-                    <p>原始文件: ${this.currentFile.name}</p>
-                    <p>注意: 纯前端PPT转换有限制，建议下载后使用专业软件查看完整内容。</p>
+                <div class="info">
+                    <strong>📊 PPT转换结果</strong><br>
+                    原始文件: ${this.currentFile.name}<br>
+                    总幻灯片数: ${pptxInfo.slideCount}<br>
+                    <small>注：纯前端PPT解析有限制，仅提取文本内容</small>
                 </div>
+                ${slidesHtml || '<div class="slide"><div class="slide-content">无法提取幻灯片内容</div></div>'}
             </body>
             </html>
         `;
@@ -456,21 +545,26 @@ class DocConverter {
         document.body.appendChild(element);
 
         const opt = {
-            margin: 10,
+            margin: [10, 10, 10, 10],
             filename: 'presentation.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
         };
 
-        const pdf = await html2pdf().set(opt).from(element).output('blob');
-        document.body.removeChild(element);
-
-        return { blob: pdf, filename: 'presentation.pdf', type: 'application/pdf' };
+        try {
+            const pdf = await html2pdf().set(opt).from(element).output('blob');
+            document.body.removeChild(element);
+            return { blob: pdf, filename: 'presentation.pdf', type: 'application/pdf' };
+        } catch (error) {
+            document.body.removeChild(element);
+            throw new Error('PDF生成失败: ' + error.message);
+        }
     }
 
     async pptxToImages(arrayBuffer) {
-        // 创建包含说明的HTML文件
+        const pptxInfo = await this.extractPptxContent(arrayBuffer);
+        
         const html = `
             <!DOCTYPE html>
             <html>
@@ -479,30 +573,49 @@ class DocConverter {
                 <title>PPT 转换结果</title>
                 <style>
                     body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; }
-                    .info { background: #f0f0f0; padding: 20px; border-radius: 8px; }
+                    .info { background: #f0f0f0; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+                    .slide-info { 
+                        background: white; 
+                        border: 1px solid #ddd; 
+                        padding: 15px; 
+                        margin-bottom: 10px;
+                        border-radius: 5px;
+                    }
+                    .slide-num { color: #667eea; font-weight: bold; }
                 </style>
             </head>
             <body>
-                <h1>🖼️ PPT 转图片</h1>
+                <h1>🖼️ PPT 内容提取</h1>
                 <div class="info">
                     <p><strong>原始文件:</strong> ${this.currentFile.name}</p>
-                    <p>纯前端环境下，PPT转图片需要服务器支持。</p>
-                    <p>建议使用: LibreOffice、Microsoft PowerPoint 或在线转换工具。</p>
+                    <p><strong>幻灯片数:</strong> ${pptxInfo.slideCount}</p>
+                    <p><strong>说明:</strong> 纯前端环境下，PPT转图片需要服务器支持。已提取文本内容供参考。</p>
                 </div>
+                ${pptxInfo.content.map(s => `
+                    <div class="slide-info">
+                        <div class="slide-num">幻灯片 ${s.slide}</div>
+                        <div>${s.text || '(无文本)'}</div>
+                    </div>
+                `).join('')}
             </body>
             </html>
         `;
         const blob = new Blob([html], { type: 'text/html' });
-        return { blob, filename: 'pptx-info.html', type: 'text/html' };
+        return { blob, filename: 'pptx-content.html', type: 'text/html' };
     }
 
     showResult(result) {
         const resultSection = document.getElementById('resultSection');
         const downloadBtn = document.getElementById('downloadBtn');
 
-        // 创建下载链接
-        const url = URL.createObjectURL(result.blob);
-        downloadBtn.href = url;
+        // 清理之前的URL对象，防止内存泄漏
+        if (this.currentDownloadUrl) {
+            URL.revokeObjectURL(this.currentDownloadUrl);
+        }
+
+        // 创建新的下载链接
+        this.currentDownloadUrl = URL.createObjectURL(result.blob);
+        downloadBtn.href = this.currentDownloadUrl;
         downloadBtn.download = result.filename;
         downloadBtn.textContent = `下载 ${result.filename}`;
 
