@@ -46,11 +46,24 @@ class DocConverter {
     handleFileSelect(file) {
         if (!file) return;
 
+        // 检查文件大小 (最大50MB)
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        if (file.size > maxSize) {
+            alert('文件太大啦！请上传小于50MB的文件 💕');
+            return;
+        }
+
+        // 检查文件是否为空
+        if (file.size === 0) {
+            alert('文件是空的哦，请重新选择 😅');
+            return;
+        }
+
         const validTypes = ['.docx', '.pdf', '.pptx'];
         const ext = '.' + file.name.split('.').pop().toLowerCase();
 
         if (!validTypes.includes(ext)) {
-            alert('请选择 .docx, .pdf 或 .pptx 格式的文件');
+            alert('请选择 .docx, .pdf 或 .pptx 格式的文件 📄');
             return;
         }
 
@@ -114,36 +127,63 @@ class DocConverter {
     }
 
     async startConversion() {
-        if (!this.currentFile || !this.currentFormat) return;
+        if (!this.currentFile || !this.currentFormat) {
+            alert('请先选择文件和目标格式哦 😊');
+            return;
+        }
 
         const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
         const convertBtn = document.getElementById('convertBtn');
+        const resultSection = document.getElementById('resultSection');
 
+        // 隐藏之前的结果
+        resultSection.classList.remove('show');
+        
         progressBar.classList.add('show');
         convertBtn.disabled = true;
-        convertBtn.textContent = '转换中...';
+        convertBtn.textContent = '正在读取文件...';
 
         try {
-            // 模拟进度
+            // 步骤1: 读取文件
             this.updateProgress(10);
-            await this.sleep(300);
+            convertBtn.textContent = '正在解析...';
+            await this.sleep(200);
+            
+            // 步骤2: 转换
             this.updateProgress(30);
-
+            convertBtn.textContent = '正在转换...';
+            
             const result = await this.convertFile();
             
+            // 步骤3: 生成文件
             this.updateProgress(80);
-            await this.sleep(200);
+            convertBtn.textContent = '正在生成...';
+            await this.sleep(300);
+            
             this.updateProgress(100);
-
             this.showResult(result);
+            
         } catch (error) {
             console.error('转换失败:', error);
-            alert('转换失败: ' + error.message);
+            let errorMsg = '转换失败 😢\n\n';
+            
+            if (error.message.includes('network') || error.message.includes('fetch')) {
+                errorMsg += '网络连接问题，请检查网络后重试';
+            } else if (error.message.includes('password') || error.message.includes('encrypted')) {
+                errorMsg += '文件可能被加密，无法转换';
+            } else if (error.message.includes('corrupt') || error.message.includes('invalid')) {
+                errorMsg += '文件可能已损坏，请检查文件';
+            } else {
+                errorMsg += error.message;
+            }
+            
+            alert(errorMsg);
         } finally {
             progressBar.classList.remove('show');
             convertBtn.disabled = false;
             convertBtn.textContent = '开始转换';
+            this.updateProgress(0);
         }
     }
 
@@ -328,18 +368,56 @@ class DocConverter {
     }
 
     async extractPdfText(arrayBuffer) {
-        // 使用PDF.js提取文本
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-        let fullText = '';
-        
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += `\n--- 第 ${i} 页 ---\n${pageText}\n`;
+        try {
+            // 使用PDF.js提取文本，添加超时
+            const loadingTask = pdfjsLib.getDocument({ 
+                data: arrayBuffer,
+                useSystemFonts: true,
+                cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+                cMapPacked: true
+            });
+            
+            const pdf = await Promise.race([
+                loadingTask.promise,
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('PDF加载超时')), 30000)
+                )
+            ]);
+            
+            let fullText = '';
+            const maxPages = Math.min(pdf.numPages, 100); // 最多处理100页
+            
+            for (let i = 1; i <= maxPages; i++) {
+                try {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items
+                        .map(item => item.str)
+                        .join(' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                    
+                    if (pageText) {
+                        fullText += `\n--- 第 ${i} 页 ---\n${pageText}\n`;
+                    }
+                    
+                    // 释放页面资源
+                    page.cleanup();
+                } catch (pageError) {
+                    console.warn(`第${i}页提取失败:`, pageError);
+                    fullText += `\n--- 第 ${i} 页 ---\n(无法提取内容)\n`;
+                }
+            }
+            
+            return { 
+                text: fullText || '(未能提取到文本内容)', 
+                numPages: pdf.numPages,
+                processedPages: maxPages
+            };
+        } catch (error) {
+            console.error('PDF文本提取错误:', error);
+            throw new Error('PDF解析失败: ' + (error.message || '未知错误'));
         }
-        
-        return { text: fullText, numPages: pdf.numPages };
     }
 
     async pdfToTxt(arrayBuffer) {

@@ -175,6 +175,49 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             width: 0%;
             transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,0.3),
+                transparent
+            );
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            margin: 20px auto;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-spinner.show {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .result-section {
@@ -262,7 +305,7 @@
         <div class="converter-box" id="dropZone">
             <div class="upload-icon">📁</div>
             <p class="upload-text">点击或拖拽文件到此处</p>
-            <p class="upload-hint">支持 .docx, .pdf, .pptx 格式</p>
+            <p class="upload-hint">支持 .docx, .pdf, .pptx 格式（最大50MB）</p>
             <input type="file" id="fileInput" accept=".docx,.pdf,.pptx">
         </div>
 
