@@ -530,6 +530,40 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     
+    <!-- CDN 加载检测 -->
+    <script>
+        // 检测核心库是否加载成功
+        window.addEventListener('load', function() {
+            const requiredLibs = [
+                { name: 'PDFLib', global: 'PDFLib' },
+                { name: 'pdfjsLib', global: 'pdfjsLib' },
+                { name: 'mammoth', global: 'mammoth' },
+                { name: 'JSZip', global: 'JSZip' },
+                { name: 'XLSX', global: 'XLSX' },
+                { name: 'html2pdf', global: 'html2pdf' }
+            ];
+            
+            const missingLibs = requiredLibs.filter(lib => typeof window[lib.global] === 'undefined');
+            
+            if (missingLibs.length > 0) {
+                const libNames = missingLibs.map(l => l.name).join(', ');
+                console.error('❌ 以下库加载失败:', libNames);
+                
+                // 显示错误提示
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ff6b6b;color:white;padding:15px;text-align:center;z-index:9999;font-family:sans-serif;';
+                errorDiv.innerHTML = `
+                    <strong>⚠️ 部分功能加载失败</strong><br>
+                    请检查网络连接或刷新页面重试<br>
+                    <small>缺失: ${libNames}</small>
+                `;
+                document.body.appendChild(errorDiv);
+            } else {
+                console.log('✅ 所有核心库加载成功');
+            }
+        });
+    </script>
+    
     <!-- 主程序 -->
     <script src="converter-pro.js"></script>
 </body>

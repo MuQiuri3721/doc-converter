@@ -19,6 +19,9 @@ class DocConverterPro {
         this.currentFormat = null;
         this.currentDownloadUrl = null;
         this.loadedLibraries = {};
+        this.maxFileSize = 50 * 1024 * 1024; // 50MB
+        this.maxPdfPages = 50; // PDF最大处理页数
+        this.maxPptSlides = 50; // PPT最大处理幻灯片数
         this.init();
     }
 
@@ -141,7 +144,6 @@ class DocConverterPro {
 
     // 验证文件
     validateFile(file) {
-        const maxSize = 50 * 1024 * 1024;
         const validTypes = ['.docx', '.pdf', '.pptx', '.xlsx', '.xls', '.png', '.jpg', '.jpeg'];
 
         if (!file) {
@@ -152,8 +154,8 @@ class DocConverterPro {
             return { valid: false, message: '文件为空，请选择其他文件' };
         }
 
-        if (file.size > maxSize) {
-            return { valid: false, message: '文件太大！最大支持 50MB' };
+        if (file.size > this.maxFileSize) {
+            return { valid: false, message: `文件太大！最大支持 ${this.formatSize(this.maxFileSize)}` };
         }
 
         const ext = '.' + file.name.split('.').pop().toLowerCase();
@@ -555,11 +557,17 @@ class DocConverterPro {
         const arrayBuffer = await this.fileToArrayBuffer(file);
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
+        // 检查页数限制
+        if (pdf.numPages > this.maxPdfPages) {
+            pdf.destroy();
+            throw new Error(`PDF页数过多！最多支持 ${this.maxPdfPages} 页，当前 ${pdf.numPages} 页`);
+        }
+        
         const images = [];
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+        for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const viewport = page.getViewport({ scale: 2 });
             
@@ -577,6 +585,11 @@ class DocConverterPro {
             
             images.push(blob);
             page.cleanup();
+            
+            // 每处理5页强制垃圾回收
+            if (i % 5 === 0) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
         }
         
         pdf.destroy();
@@ -620,11 +633,16 @@ class DocConverterPro {
                 return numA - numB;
             });
         
+        // 检查幻灯片数量
+        if (slideFiles.length > this.maxPptSlides) {
+            throw new Error(`幻灯片过多！最多支持 ${this.maxPptSlides} 页，当前 ${slideFiles.length} 页`);
+        }
+        
         // 创建PDF
         const { PDFDocument } = PDFLib;
         const pdfDoc = await PDFDocument.create();
         
-        for (const slideFile of slideFiles.slice(0, 50)) {
+        for (const slideFile of slideFiles) {
             const slideXml = await zip.file(slideFile).async('text');
             const textMatches = slideXml.match(/<a:t>([^<]*)<\/a:t>/g) || [];
             const texts = textMatches.map(match => 
@@ -635,7 +653,7 @@ class DocConverterPro {
             
             let y = 480;
             texts.forEach(text => {
-                if (y > 50) {
+                if (y > 50 && text.trim()) {
                     page.drawText(text.substring(0, 100), {
                         x: 50,
                         y: y,
@@ -665,12 +683,17 @@ class DocConverterPro {
             .filter(name => /\.(png|jpg|jpeg)$/i.test(name));
         
         if (mediaFiles.length === 0) {
-            throw new Error('PPT中没有找到图片');
+            throw new Error('PPT中没有找到图片，可能是一个纯文本的PPT');
+        }
+        
+        // 检查图片数量
+        if (mediaFiles.length > this.maxPptSlides) {
+            throw new Error(`图片过多！最多支持 ${this.maxPptSlides} 张，当前 ${mediaFiles.length} 张`);
         }
         
         if (mediaFiles.length === 1) {
             const imageData = await zip.file(mediaFiles[0]).async('blob');
-            const ext = mediaFiles[0].split('.').pop();
+            const ext = mediaFiles[0].split('.').pop().toLowerCase();
             return {
                 blob: imageData,
                 filename: this.getOutputFilename(file.name, ext),
@@ -680,9 +703,9 @@ class DocConverterPro {
         
         // 多个图片打包成ZIP
         const imageZip = new JSZip();
-        for (let i = 0; i < Math.min(mediaFiles.length, 50); i++) {
+        for (let i = 0; i < mediaFiles.length; i++) {
             const imageData = await zip.file(mediaFiles[i]).async('blob');
-            const ext = mediaFiles[i].split('.').pop();
+            const ext = mediaFiles[i].split('.').pop().toLowerCase();
             imageZip.file(`slide_${i + 1}.${ext}`, imageData);
         }
         
