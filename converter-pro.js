@@ -425,6 +425,11 @@ class DocConverterPro {
     // ============ PDF 转换方法 ============
 
     async convertPdfToDocx(file) {
+        // 检查 PDF.js 是否加载
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js 库未加载，请刷新页面重试');
+        }
+        
         const arrayBuffer = await this.fileToArrayBuffer(file);
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
@@ -475,6 +480,11 @@ class DocConverterPro {
     }
 
     async convertPdfToHtml(file) {
+        // 检查 PDF.js 是否加载
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js 库未加载，请刷新页面重试');
+        }
+        
         const arrayBuffer = await this.fileToArrayBuffer(file);
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
@@ -533,6 +543,11 @@ class DocConverterPro {
     }
 
     async convertPdfToTxt(file) {
+        // 检查 PDF.js 是否加载
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js 库未加载，请刷新页面重试');
+        }
+        
         const arrayBuffer = await this.fileToArrayBuffer(file);
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
@@ -554,6 +569,11 @@ class DocConverterPro {
     }
 
     async convertPdfToImages(file) {
+        // 检查 PDF.js 是否加载
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js 库未加载，请刷新页面重试');
+        }
+        
         const arrayBuffer = await this.fileToArrayBuffer(file);
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         
@@ -980,6 +1000,10 @@ class DocConverterPro {
         }
 
         const msg = error.message.toLowerCase();
+
+        if (msg.includes('pdf.js') || msg.includes('未加载')) {
+            return 'PDF.js 库加载失败，请刷新页面重试。如果问题持续，请检查网络连接。';
+        }
 
         if (msg.includes('network') || msg.includes('fetch') || msg.includes('load')) {
             return '网络连接问题或库加载失败，请检查网络后刷新页面重试';

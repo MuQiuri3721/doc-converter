@@ -530,6 +530,17 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
     
+    <!-- PDF.js Worker 配置 -->
+    <script>
+        // 确保 PDF.js Worker 正确配置
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+            console.log('✅ PDF.js Worker 已配置');
+        } else {
+            console.error('❌ PDF.js 未加载');
+        }
+    </script>
+    
     <!-- 主程序 -->
     <script src="converter-pro.js"></script>
 </body>
